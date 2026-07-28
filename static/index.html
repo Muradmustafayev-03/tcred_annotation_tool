@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>T-CRED Annotation Admin</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">T-CRED owner tools</p>
+      <h1>Annotation administration</h1>
+    </div>
+    <div class="header-actions">
+      <span id="connectionBadge" class="status-badge pending">Checking service</span>
+      <button id="refreshButton" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="service-strip" aria-labelledby="serviceHeading">
+      <div>
+        <h2 id="serviceHeading">Collection status</h2>
+        <p>Annotation API: <code id="baseUrl">Loading...</code></p>
+      </div>
+      <div class="service-links">
+        <a id="docsLink" href="#" target="_blank" rel="noreferrer">API documentation</a>
+        <span id="lastRefresh">Not refreshed yet</span>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Progress summary">
+      <article class="metric">
+        <span>Started</span>
+        <strong id="startedMetric">-</strong>
+        <small id="startedDetail">of - annotators</small>
+      </article>
+      <article class="metric">
+        <span>Tutorial complete</span>
+        <strong id="tutorialMetric">-</strong>
+        <small>annotators</small>
+      </article>
+      <article class="metric">
+        <span>Research active</span>
+        <strong id="activeMetric">-</strong>
+        <small>annotators</small>
+      </article>
+      <article class="metric">
+        <span>Ready to submit</span>
+        <strong id="readyMetric">-</strong>
+        <small>annotators</small>
+      </article>
+      <article class="metric complete">
+        <span>Finished</span>
+        <strong id="finishedMetric">-</strong>
+        <small id="finishedDetail">of - annotators</small>
+      </article>
+      <article class="metric answers">
+        <span>Answers complete</span>
+        <strong id="answersMetric">-</strong>
+        <small id="answersDetail">of - judgments</small>
+      </article>
+    </section>
+
+    <section class="progress-section" aria-labelledby="progressHeading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Live overview</p>
+          <h2 id="progressHeading">Completion</h2>
+        </div>
+        <span id="completionSummary">Waiting for the annotation service</span>
+      </div>
+      <div class="progress-row">
+        <span>Annotators finished</span>
+        <progress id="annotatorProgress" class="progress-track" aria-label="Annotators finished" max="100" value="0"></progress>
+        <strong id="annotatorPercent">0%</strong>
+      </div>
+      <div class="progress-row">
+        <span>Answers completed</span>
+        <progress id="answerProgress" class="progress-track" aria-label="Answers completed" max="100" value="0"></progress>
+        <strong id="answerPercent">0%</strong>
+      </div>
+    </section>
+
+    <section class="operations" aria-labelledby="operationsHeading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Data protection</p>
+          <h2 id="operationsHeading">Snapshots and backups</h2>
+        </div>
+        <span id="backupSummary">No backup information yet</span>
+      </div>
+      <div class="operation-grid">
+        <div class="operation">
+          <h3>Download now</h3>
+          <p>Download a checksum-verified, privacy-minimized ZIP to this computer.</p>
+          <button id="downloadButton" type="button" class="primary">Download snapshot</button>
+        </div>
+        <div class="operation">
+          <h3>Store local backup</h3>
+          <p>Save a verified ZIP in the configured <code>.annotations-backup</code> directory.</p>
+          <button id="backupNowButton" type="button">Back up now</button>
+        </div>
+        <div class="operation schedule-operation">
+          <h3>Automatic schedule</h3>
+          <label for="scheduleSelect">Backup interval</label>
+          <div class="schedule-control">
+            <select id="scheduleSelect"></select>
+            <button id="saveScheduleButton" type="button">Apply</button>
+          </div>
+          <p id="nextBackup">Automatic backups are disabled.</p>
+        </div>
+      </div>
+      <div class="backup-list-wrap">
+        <h3>Recent server-side backups</h3>
+        <ul id="backupList" class="backup-list">
+          <li class="empty">No backups have been stored by this dashboard.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="annotators" aria-labelledby="annotatorsHeading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Pseudonymous records</p>
+          <h2 id="annotatorsHeading">Annotator progress</h2>
+        </div>
+        <span>Answer content and network identifiers are not shown.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Annotator</th>
+              <th scope="col">Status</th>
+              <th scope="col">Answers</th>
+              <th scope="col">Completion</th>
+              <th scope="col">Last activity</th>
+              <th scope="col">Submitted</th>
+            </tr>
+          </thead>
+          <tbody id="annotatorRows">
+            <tr><td colspan="6" class="empty">Loading progress...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="danger-zone" aria-labelledby="dangerHeading">
+      <div>
+        <p class="eyebrow">Danger zone</p>
+        <h2 id="dangerHeading">Clear live annotation data</h2>
+        <p>
+          Intended only after test or pilot runs. This removes saved labels, progress, audits,
+          submissions, and activity records. It never removes assignments or dataset artifacts.
+        </p>
+      </div>
+      <button id="openClearButton" type="button" class="danger">Prepare data deletion</button>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="clearDialog" aria-labelledby="clearTitle">
+    <form method="dialog" class="dialog-shell">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">Irreversible operation</p>
+          <h2 id="clearTitle">Clear all live annotation data?</h2>
+        </div>
+        <button id="closeClearButton" type="button" class="close-button" aria-label="Close">×</button>
+      </div>
+      <div id="clearLoading" class="dialog-loading">Reading the current server state...</div>
+      <div id="clearContent" hidden>
+        <p id="clearWarning" class="warning-copy"></p>
+        <dl class="deletion-summary">
+          <div><dt>Live files</dt><dd id="clearFiles">-</dd></div>
+          <div><dt>Live bytes</dt><dd id="clearBytes">-</dd></div>
+          <div><dt>Started</dt><dd id="clearStarted">-</dd></div>
+          <div><dt>Finished</dt><dd id="clearFinished">-</dd></div>
+        </dl>
+        <label class="check-row">
+          <input id="recoveryBackup" type="checkbox" checked>
+          <span>Create a recovery snapshot outside the live annotation store before clearing.</span>
+        </label>
+        <label for="confirmationInput">
+          Type <code id="confirmationPhrase">DELETE ALL ANNOTATION DATA</code> exactly:
+        </label>
+        <input id="confirmationInput" type="text" autocomplete="off" spellcheck="false">
+        <label class="check-row acknowledgement">
+          <input id="clearAcknowledgement" type="checkbox">
+          <span>I understand that every live participant record will be removed.</span>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button id="cancelClearButton" type="button">Cancel</button>
+        <button id="confirmClearButton" type="button" class="danger" disabled>
+          Permanently clear live data
+        </button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
