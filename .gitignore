@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.idea/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+runtime/
+.annotations-backup/
+coverage.xml
+.coverage

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>T-CRED Annotation Workspace</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>T-CRED Annotation Workspace</h1>
+        <p id="assignmentMeta"></p>
+      </div>
+      <div class="topbar-actions">
+        <button id="clearDebugProgressButton" type="button" class="debug-reset" hidden>
+          Clear debug progress
+        </button>
+        <span id="modeBadge" class="mode-badge">Loading</span>
+      </div>
+    </header>
+
+    <main id="instructionsView" class="onboarding-shell" hidden>
+      <section class="onboarding-panel">
+        <span class="section-kicker">Before you begin</span>
+        <h2>What you will judge</h2>
+        <p>
+          Each practice or research card contains a <strong>question</strong>, a
+          <strong>candidate answer</strong>, and sometimes evidence or candidate graph paths.
+          Your task is not to answer the question yourself. Your task is to judge the supplied
+          candidate and each supplied support component.
+        </p>
+
+        <div class="onboarding-notice">
+          <strong>Plan about 70 minutes.</strong>
+          <span>Practice takes about 10 minutes; the 20 research answers take about 60 minutes.</span>
+          <span>Use a desktop or laptop computer. Mobile layout is not guaranteed for this study.</span>
+        </div>
+
+        <section class="onboarding-section">
+          <h3>The one decision rule for all fields</h3>
+          <div class="label-decision-grid">
+            <div class="label-decision-question">
+              <strong>Can the displayed material decide this field?</strong>
+              <span>Judge only what is shown. Feeling unsure is not itself a label.</span>
+            </div>
+            <div><strong>Cannot judge</strong><span>No. Required information is missing, ambiguous, unreadable, or conflicting.</span></div>
+            <div><strong>Yes</strong><span>Yes, and the field's requirement is fully satisfied.</span></div>
+            <div><strong>Partial</strong><span>Yes, and a meaningful part is satisfied, but a material part is missing or mixed.</span></div>
+            <div><strong>No</strong><span>Yes, and the central requirement fails.</span></div>
+          </div>
+          <p class="worked-rule">
+            <strong>Key distinction:</strong> choose <strong>Partial</strong> when you have enough
+            information to identify exactly what is incomplete. Choose <strong>Cannot judge</strong>
+            when the displayed information does not let you decide.
+          </p>
+        </section>
+
+        <section class="onboarding-section">
+          <h3>Each field asks a different question</h3>
+          <div class="field-purpose-grid">
+            <div><strong>Temporal correct</strong><span>Is the timing of each claim the candidate actually makes valid for the requested date or operation? A date attached only to another entity or relation cannot decide this field.</span></div>
+            <div><strong>Evidence supports claim content</strong><span>Pretend all dates are hidden. Do the evidence words support the candidate's stated factual claims? If hiding dates leaves mutually exclusive claims that cannot be resolved, use Cannot judge.</span></div>
+            <div><strong>Citation time coverage</strong><span>Ignoring citation content, do the displayed intervals of evidence marked cited cover the required time?</span></div>
+            <div><strong>Graph evidence sufficient</strong><span>Do the displayed paths, judged together, contain every node, direction, relation, hop, and time needed for the candidate's stated claims?</span></div>
+            <div><strong>Answer correct</strong><span>After the reference is revealed, does the candidate supply the requested result completely and correctly? A correct setup fact alone is not a partial answer.</span></div>
+            <div><strong>Answer/refusal decision appropriate</strong><span>Was the candidate right to answer rather than refuse, or to refuse rather than answer?</span></div>
+          </div>
+          <p class="worked-rule">
+            A stale sentence can therefore be <strong>Yes</strong> for evidence content but
+            <strong>No</strong> for temporal correctness and citation time coverage. These labels
+            are intentionally independent.
+          </p>
+          <ul class="worked-examples">
+            <li><strong>Missing list item:</strong> Stage 1 can still be Yes when every claim the candidate states is supported and in time; mark the incomplete answer Partial after the reference is revealed.</li>
+            <li><strong>Irrelevant dated citation:</strong> Temporal can be Cannot judge, Evidence can be No, and Citation time coverage can still be Yes when the citation interval is in range but concerns another claim.</li>
+            <li><strong>Refusal:</strong> A justified refusal can be Answer = No but Decision = Yes: it withholds the requested result, yet correctly avoids inventing one from insufficient shown material.</li>
+          </ul>
+        </section>
+
+        <section class="onboarding-section">
+          <h3>Dates, operators, and source wording</h3>
+          <p>
+            Treat displayed interval boundaries as inclusive. <strong>At any time</strong> means
+            any overlap; <strong>throughout</strong> means the whole interval is covered;
+            <strong>after</strong> and <strong>before</strong> use strict cutoffs; and
+            <strong>by</strong> includes the cutoff. Include every tied item for first, last,
+            previous, or next. Tied items may be listed in any order, but words such as
+            <strong>then</strong> or <strong>followed by</strong> assert a sequence. That sequence
+            is wrong when both items have the same timestamp.
+          </p>
+          <p>
+            A dated <strong>Wikidata snapshot</strong> asks what that snapshot recorded, not what is
+            true today. A dated <strong>document revision</strong> asks what that revision stated;
+            its revision date does not prove that the statement was world-valid on that date.
+          </p>
+          <p>
+            Some cards intentionally contain no evidence or no graph path. The corresponding
+            judgment fields are omitted automatically. Do not invent missing material and do not
+            report an error merely because an optional component is absent.
+          </p>
+          <p>
+            When several graph paths are shown, judge the <strong>set collectively</strong>. One
+            complete path, or several paths that together provide every required connection, can
+            be sufficient. An unrelated extra path does not make sufficient graph evidence wrong.
+          </p>
+        </section>
+
+        <div class="workflow-preview">
+          <div><strong>1</strong><span>Review question, candidate, evidence, paths, and source-date note</span></div>
+          <div><strong>2</strong><span>Judge every visible evidence-stage field independently</span></div>
+          <div><strong>3</strong><span>Lock those judgments and reveal the reference</span></div>
+          <div><strong>4</strong><span>Judge answer correctness and the answer/refusal decision</span></div>
+        </div>
+
+        <div class="external-tools-notice">
+          <strong>Use only this page.</strong>
+          <span>
+            Do not search the web, use AI tools, ask another person, or rely on unstated prior
+            knowledge. Outside sources may describe a later or different world state and would
+            invalidate the comparison. This is not a memory test: use Cannot judge when the shown
+            material cannot decide a visible field.
+          </span>
+        </div>
+
+        <p class="privacy-note">
+          Practice answers are excluded from research results. The study stores only aggregate
+          attempts and failed attempts for the two independently checked practice cards, not
+          practice labels or interaction traces.
+        </p>
+        <p class="guide-download">
+          <a href="/annotation-guidelines.pdf" target="_blank" rel="noopener">
+            Open the detailed annotation guide (PDF)
+          </a>
+        </p>
+        <button id="startTutorialButton" type="button" class="primary-action">
+          Begin 6-answer practice tutorial
+        </button>
+      </section>
+    </main>
+
+    <main id="annotationLayout" class="layout" hidden>
+      <aside class="sidebar">
+        <section class="progress-panel">
+          <div class="progress-line">
+            <strong id="progressText">0 / 0</strong>
+            <span id="saveState">Loading</span>
+          </div>
+          <div class="progress-track"><div id="progressBar"></div></div>
+        </section>
+        <div class="sidebar-actions">
+          <button id="allUnitsButton" type="button" class="active">All</button>
+          <button id="openUnitsButton" type="button">Open</button>
+        </div>
+        <nav id="unitList" class="unit-list"></nav>
+        <div class="sidebar-submit">
+          <button id="reviewButton" type="button">Review and submit</button>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <div class="unit-toolbar">
+          <button id="prevButton" type="button">Previous</button>
+          <div>
+            <h2 id="unitTitle">Loading assignment</h2>
+            <p id="unitSubtitle"></p>
+          </div>
+          <button id="nextButton" type="button">Next</button>
+          <button id="saveButton" type="button">Save</button>
+        </div>
+
+        <div class="workspace-grid">
+          <nav class="review-nav" aria-label="Current answer sections">
+            <button type="button" data-section-target="#questionPanel" class="active">Question and answer</button>
+            <button type="button" data-section-target="#evidencePanel">Evidence</button>
+            <button type="button" data-section-target="#graphPanel">Graph evidence</button>
+            <button type="button" data-section-target="#judgmentsPanel">Judgments</button>
+          </nav>
+
+          <section id="contextPane" class="context-pane" aria-label="Material to review">
+            <div id="contextScroll" class="context-scroll">
+              <section class="review-grid">
+                <article id="questionPanel" class="review-panel question-panel review-wide">
+                  <h3>Question</h3>
+                  <p id="questionText"></p>
+                  <div id="questionScopeNote" class="question-scope-note" hidden></div>
+                </article>
+                <article class="review-panel answer-panel review-wide">
+                  <h3>Candidate Answer</h3>
+                  <p id="answerText"></p>
+                  <div id="contextNote" class="context-note" hidden></div>
+                </article>
+                <article id="referencePanel" class="review-panel reference-panel review-wide" hidden>
+                  <h3>Reference Answer</h3>
+                  <p id="referenceText"></p>
+                </article>
+              </section>
+
+              <section id="evidencePanel" class="review-panel review-section">
+                <h3>Evidence</h3>
+                <div id="evidenceList" class="evidence-list"></div>
+              </section>
+
+              <section id="graphPanel" class="review-panel review-section">
+                <h3>Graph Evidence Paths</h3>
+                <div id="graphPathList" class="evidence-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <aside id="decisionPane" class="decision-pane" aria-label="Judgments">
+            <div id="decisionScroll" class="decision-scroll">
+              <section id="tutorialCoach" class="tutorial-coach" hidden>
+                <div class="tutorial-coach-header">
+                  <span id="tutorialStage" class="tutorial-stage"></span>
+                  <span class="practice-badge">Practice only - not recorded</span>
+                </div>
+                <h2 id="tutorialCoachTitle"></h2>
+                <p id="tutorialCoachInstruction"></p>
+                <p id="tutorialCoachReason" class="tutorial-reason"></p>
+              </section>
+
+              <section id="stageBanner" class="stage-banner">
+                <div>
+                  <span id="stageNumber" class="stage-number"></span>
+                  <div>
+                    <strong id="stageTitle"></strong>
+                    <p id="stageDescription"></p>
+                  </div>
+                </div>
+                <span id="stageStatus" class="stage-status"></span>
+              </section>
+
+              <section id="judgmentsPanel" class="label-panel">
+                <section class="context-reminder" aria-label="Question and candidate reminder">
+                  <div>
+                    <span>Question</span>
+                    <p id="questionReminder"></p>
+                  </div>
+                  <div>
+                    <span>Candidate</span>
+                    <p id="answerReminder"></p>
+                  </div>
+                  <div id="referenceReminderBlock" hidden>
+                    <span>Reference</span>
+                    <p id="referenceReminder"></p>
+                  </div>
+                  <button type="button" data-section-target="#questionPanel">Review full context</button>
+                </section>
+
+                <div class="judgment-heading">
+                  <div>
+                    <span class="pane-kicker">Your judgments</span>
+                    <strong>Complete every visible field</strong>
+                  </div>
+                  <span>Definitions are available inside each field</span>
+                </div>
+                <section class="label-rule-reminder" aria-label="Label decision rule">
+                  <strong>Can the displayed material decide this field?</strong>
+                  <span><b>No</b> &rarr; Cannot judge</span>
+                  <span><b>Yes, fully</b> &rarr; Yes</span>
+                  <span><b>Yes, mixed or incomplete</b> &rarr; Partial</span>
+                  <span><b>Yes, central requirement fails</b> &rarr; No</span>
+                </section>
+                <div id="tutorialFeedback" class="tutorial-feedback" aria-live="polite"></div>
+                <div id="lockedJudgments" class="locked-judgments" hidden></div>
+                <div id="labelControls" class="label-controls"></div>
+                <div id="logicalConflict" class="logical-conflict" hidden></div>
+
+                <div id="issueBlock" class="issue-block">
+                  <label for="issueSelect">Data or display problem (optional)</label>
+                  <select id="issueSelect">
+                    <option value="">No problem to report</option>
+                  </select>
+                  <textarea
+                    id="issueDetail"
+                    rows="2"
+                    maxlength="2000"
+                    placeholder="Required only for Other data or display problem"
+                    hidden
+                  ></textarea>
+                </div>
+
+                <div id="commentBlock">
+                  <label class="comment-label" for="commentInput">Additional comment (optional)</label>
+                  <textarea id="commentInput" rows="3" maxlength="2000"></textarea>
+                </div>
+              </section>
+            </div>
+          </aside>
+
+          <div class="stage-actions">
+            <button id="tutorialActionButton" type="button" class="primary-action" hidden></button>
+            <button id="revealReferenceButton" type="button" class="primary-action"></button>
+            <span id="stageActionHelp"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <main id="reviewView" class="review-shell" hidden>
+      <section class="review-summary-header">
+        <div>
+          <span class="section-kicker">Final review</span>
+          <h2>Review all 20 annotations before submission</h2>
+          <p>Submission locks the assignment. Incomplete or logically contradictory rows must be resolved.</p>
+        </div>
+        <button id="backToAssignmentButton" type="button">Back to annotations</button>
+      </section>
+      <div id="reviewSummary" class="review-summary"></div>
+      <section class="submit-panel">
+        <div id="submitReadiness" aria-live="polite"></div>
+        <button id="submitButton" type="button" class="primary-action">
+          Submit final annotations
+        </button>
+      </section>
+    </main>
+
+    <main id="submittedView" class="onboarding-shell" hidden>
+      <section class="onboarding-panel submitted-panel">
+        <span class="section-kicker">Submitted</span>
+        <h2>Your annotation assignment is complete</h2>
+        <p id="submittedMessage"></p>
+        <p>Your saved labels are now read-only. You may close this page.</p>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

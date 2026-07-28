@@ -1,138 +1,145 @@
-# Annotation Admin Dashboard
+# T-CRED Annotation Tool
 
-This module is the loopback-only owner client for the T-CRED annotation service. It displays
-privacy-minimized progress, downloads current exports, stores verified backups, configures a
-periodic backup scheduler, and exposes the deliberately guarded clear-data workflow.
+Standalone deployment of the T-CRED protocol 4.2 human-annotation workflow. It includes the
+participant UI, six-card tutorial 5.2, 36 frozen blinded assignments of 20 units each, protected
+progress/export/clear APIs, local autosave, server autosave, final submission locking, and the
+annotator guide.
 
-It is a separate process from the participant-facing annotation service:
+## Important
+
+**Keep this repository private.** The server needs Stage 2 reference answers, so those answers are
+present in the frozen assignment files even though the API withholds them during Stage 1. A public
+repository would unblind the study.
+
+Only deploy with persistent storage. Railway service files are otherwise ephemeral and can
+disappear on redeploy. The checked-in configuration requires a volume mounted at `/data`.
+
+## Railway
+
+The repository is ready for Railway:
+
+- pinned Python 3.12 container image;
+- deterministic dependency versions;
+- `0.0.0.0` binding and Railway-injected `PORT`;
+- `/api/health` deployment health check;
+- one replica, no overlapping deployment writers;
+- required `/data` volume;
+- automatic immutable assignment verification;
+- automatic privilege drop after preparing the Railway volume;
+- automatically generated persistent admin token when no secret is injected.
+
+See [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) for the exact deployment and
+verification procedure. Railway cannot create a volume from `railway.json`; attach `/data` once or
+deploy through a Railway Template that already contains the volume. A repository deployment also
+needs one **Generate Domain** action before annotators can reach it. A template can retain both
+resources for later one-click deployments.
+
+## Local run
+
+Python 3.12 and [uv](https://docs.astral.sh/uv/) are recommended:
+
+```powershell
+uv sync --extra dev
+uv run python -m tcred_annotation_tool check
+uv run python -m tcred_annotation_tool serve
+```
+
+Open `http://127.0.0.1:8770`. IDs `1` through `36` are production assignments. ID `0` is reserved
+for testing and is excluded from exports and label import.
+
+The generated local admin token is stored in ignored `runtime/.admin-token`. Read it explicitly:
+
+```powershell
+uv run python -m tcred_annotation_tool admin-token
+```
+
+To inject your own token, create an ignored `.env` from `.env.example` and use at least 43 random
+ASCII characters.
+
+## Data layout
+
+Immutable, committed deployment inputs:
 
 ```text
-browser -> 127.0.0.1:8772 owner dashboard
-owner dashboard -> configured annotation base URL on port 8770
-owner dashboard -> .annotations-backup
+data/
+  assignments/                 36 blinded assignment files
+  deployment_manifest.json    protocol, counts, and SHA-256 checksums
 ```
 
-The browser never receives or stores `TCRED_ADMIN_TOKEN`. The dashboard backend reads the token,
-sends it to the annotation server through the `Authorization` header, and returns only sanitized
-results. The dashboard refuses a non-loopback bind, rejects non-loopback `Host` headers, and
-requires both same-origin requests and an ephemeral CSRF token for every mutation.
-
-## Configuration
-
-The default annotation base URL is:
+Mutable, ignored local state or Railway `/data`:
 
 ```text
-http://127.0.0.1:8770
+labels_raw/
+  annotator_XX.jsonl           minimized labels
+  submissions/                 revision-bound final submissions
+  audit/                       minimized save/submission events
+  .admin/                      activity and protected admin events
+  .collection.json             browser/session generation
+backups/                       pre-clear recovery exports
+.admin-token                   generated owner credential, when needed
 ```
 
-For a deployed server, change it in either of these places:
+The repository intentionally excludes the private evaluation key, global unit table, generated
+worlds, QA outputs, and metric code. Frozen graph paths are already enriched with readable nodes,
+relations, direction, time, and evidence text, so no source dataset is required at runtime.
 
-1. set `TCRED_ANNOTATION_BASE_URL=https://annotations.example.org` in the process environment or
-   `src/tcred/annotation_admin/.env`; or
-2. pass `--base-url https://annotations.example.org` to the command.
+## Participant workflow
 
-A remote URL must use HTTPS. Do not include credentials, a query, or a fragment in the URL.
+1. Enter the supplied annotator ID.
+2. Read the study rules and complete four guided plus two independently checked tutorial cards.
+3. Annotate 20 frozen units in increasing estimated complexity.
+4. For each unit, complete evidence/time judgments before revealing the reference answer.
+5. Complete answer/refusal judgments, review all units, and submit.
 
-Copy `.env.example` to `.env` only for a private single-host installation. The token lookup order
-is:
+Research edits are saved to browser storage immediately and sent to the server 1.5 seconds after
+the latest change. Server writes are atomic and revision checked. Final submission makes the
+assignment read-only.
 
-1. process environment;
-2. `src/tcred/annotation_admin/.env`;
-3. `src/tcred/annotation_ui/.env`, so the local dashboard can reuse the annotation service token
-   without duplicating it.
+The detailed participant document is [docs/annotation-guidelines.pdf](docs/annotation-guidelines.pdf).
 
-The real `.env`, generated ZIP files, and `.annotations-backup` directory are ignored and excluded
-from package builds.
+## Administration
 
-## Run
+All administrative endpoints require:
 
-Start the annotation service first:
+```http
+Authorization: Bearer <TCRED_ADMIN_TOKEN>
+```
+
+Available endpoints:
+
+- `GET /api/admin/progress`
+- `GET /api/admin/export`
+- `POST /api/admin/clear/prepare`
+- `POST /api/admin/clear/confirm`
+- `GET /api/health`
+- `GET /api/config`
+- `GET /api/docs`
+- `GET /api/openapi.json`
+
+Clearing requires a short-lived state-bound challenge, the exact confirmation phrase, and an
+optional pre-clear recovery export. It never deletes assignments.
+
+## Updating assignments
+
+Copy only a verified release's blinded assignment files:
 
 ```powershell
-uv run tcred annotation-ui --no-open-browser
+uv run python scripts/prepare_assignments.py `
+  C:\path\to\tcred_release `
+  --destination data
+uv run python -m tcred_annotation_tool check
 ```
 
-Then start the owner dashboard:
+The preparation script verifies source hashes and writes a minimized deployment manifest. It never
+copies `human_eval_key.jsonl`, `human_eval_units.jsonl`, generated datasets, or QA checkpoints.
+
+## Quality checks
 
 ```powershell
-uv run tcred annotation-admin-ui
+uv run ruff check .
+uv run pytest -q
+uv run python -m tcred_annotation_tool check
+docker build -t tcred-annotation-tool .
 ```
 
-Open `http://127.0.0.1:8772/`.
-
-Example for a deployed annotation API:
-
-```powershell
-uv run tcred annotation-admin-ui `
-  --base-url https://annotations.example.org `
-  --backup-dir .annotations-backup `
-  --backup-retention 168
-```
-
-The dashboard itself should remain on the administrator's computer or another loopback-only
-management host. Do not publish port 8772 through a reverse proxy.
-
-## Features
-
-- aggregate cards for started, tutorial-complete, active, ready, finished, and completed-answer
-  counts;
-- two completion bars and a 36-row pseudonymous annotator table;
-- service connectivity and the remote API documentation link;
-- browser download of the current checksum-manifested ZIP;
-- immediate server-side backup into `.annotations-backup`;
-- disabled, one-hour, two-hour, six-hour, and daily scheduler settings;
-- persisted non-secret scheduler state, recent-backup list, checksums, ZIP validation, atomic writes,
-  and configurable retention;
-- a two-step clear-data dialog with an exact phrase and explicit acknowledgement.
-
-The scheduler runs only while the owner-dashboard process is running. Its interval survives a
-restart, but the process still needs to be managed by the operating system if uninterrupted backups
-are required.
-
-## Clear-Data Safety
-
-The dashboard does not send a direct delete request. It first asks the annotation service for a
-five-minute challenge bound to a SHA-256 fingerprint of the current participant state. The final
-request must contain:
-
-- the bearer credential, held only by the dashboard backend;
-- the challenge token;
-- the matching state fingerprint;
-- the exact phrase `DELETE ALL ANNOTATION DATA`;
-- an explicit acknowledgement in the browser.
-
-If an annotator saves anything after the warning appears, the state fingerprint changes and the
-server rejects deletion. The dialog must then be prepared again.
-
-On success, the server rotates its collection generation. This invalidates every outstanding
-assignment save token and changes the annotator browser-storage namespace, preventing a stale tab
-or pilot-era local draft from recreating deleted records.
-
-The operation deletes only known mutable files inside the configured annotation output directory:
-
-- `annotator_*.jsonl` live labels, including debug ID 0;
-- save-audit records;
-- final-submission records;
-- tutorial/assignment activity state;
-- old administrator-operation audit records.
-
-It never deletes assignments, generated datasets, QA outputs, private gold keys, source documents,
-or files outside the live annotation output directory. When recovery backup is selected, a
-privacy-minimized ZIP is written outside the live store before deletion. The server writes a new
-administrative success receipt after clearing.
-
-## Backup Semantics
-
-Every downloaded archive must:
-
-- be smaller than the configured 64 MiB safety limit;
-- match the `X-Content-SHA256` header;
-- be a valid ZIP with no absolute or parent-traversal paths.
-
-The dashboard writes a temporary file, verifies it again, atomically renames it, and applies private
-file permissions where the platform supports them. Retention applies only to ordinary
-`tcred-annotations-*.zip` scheduler exports. It does not automatically delete `pre-clear-*.zip`
-recovery archives.
-
-Backups contain pseudonymous labels and therefore remain research data. Store the directory on
-encrypted storage, restrict access, test restoration, and apply the study's retention policy.
+See [SECURITY.md](SECURITY.md) before granting repository access or sharing the deployment URL.
